@@ -70,16 +70,22 @@ client_headers = {
 
 
 # Security headers that should be enabled
+HSTS_headers = {
+    'Strict-Transport-Security': 'error'
+}
+
 sec_headers = {
     'X-XSS-Protection': 'deprecated',
     'X-Frame-Options': 'warning',
     'X-Content-Type-Options': 'warning',
-    'Strict-Transport-Security': 'error',
     'Content-Security-Policy': 'warning',
     'X-Permitted-Cross-Domain-Policies': 'deprecated',
     'Referrer-Policy': 'warning',
     'Expect-CT': 'deprecated',
-    'Permissions-Policy': 'warning',
+    'Permissions-Policy': 'warning'
+}
+
+CORS_headers = {
     'Cross-Origin-Embedder-Policy': 'warning',
     'Cross-Origin-Resource-Policy': 'warning',
     'Cross-Origin-Opener-Policy': 'warning'
@@ -106,7 +112,7 @@ headers = {}
 def banner():
     log("")
     log("======================================================")
-    log(" > shcheck.py - santoru ..............................")
+    log(" > shcheck.py - BSolar ...............................")
     log("------------------------------------------------------")
     log(" Simple tool to check security headers on a webserver ")
     log("======================================================")
@@ -264,6 +270,7 @@ def main():
     cookie = options.cookie
     custom_headers = options.custom_headers
     information = options.information
+    cors_analysis = options.cors_analysis
     cache_control = options.cache_control
     show_deprecated = options.show_deprecated
     hfile = options.hfile
@@ -320,10 +327,28 @@ def main():
         json_results["present"] = {}
         json_results["missing"] = []
 
+        log("-------------------------------------------------------")
+
+        for safeh in HSTS_headers:
+            lsafeh = safeh.lower()
+            if lsafeh in headers:
+                safe += 1
+                json_results["present"][safeh] = headers.get(lsafeh)
+                log("[*] Header {} is present! (Value: {})".format(
+                        colorize(safeh, 'ok'),
+                        headers.get(lsafeh)))
+            else:
+                unsafe += 1
+                json_results["missing"].append(safeh)
+                log('[!] Missing security header: {}'.format(
+                    colorize(safeh, sec_headers.get(safeh))))
+
         # Before parsing, remove X-Frame-Options if there's CSP with frame-ancestors directive
         if "content-security-policy" in headers.keys() and "frame-ancestors" in headers.get("content-security-policy").lower():
             sec_headers.pop("X-Frame-Options", None)
             headers.pop("X-Frame-Options".lower(), None)
+
+        log("------------------------------------------------------")
 
         for safeh in sec_headers:
             lsafeh = safeh.lower()
@@ -378,10 +403,29 @@ def main():
                 log('[!] Missing security header: {}'.format(
                     colorize(safeh, sec_headers.get(safeh))))
 
+        if cors_analysis:
+            
+            log("-------------------------------------------------------")
+
+            for safeh in CORS_headers:
+                lsafeh = safeh.lower()
+                if lsafeh in headers:
+                    safe += 1
+                    json_results["present"][safeh] = headers.get(lsafeh)
+                    log("[*] Header {} is present! (Value: {})".format(
+                            colorize(safeh, 'ok'),
+                            headers.get(lsafeh)))
+                else:
+                    unsafe += 1
+                    json_results["missing"].append(safeh)
+                    log('[!] Missing security header: {}'.format(
+                        colorize(safeh, sec_headers.get(safeh))))
+
+
         if information:
             json_headers["information_disclosure"] = {}
             i_chk = False
-            log("")
+            log("-------------------------------------------------------")
             for infoh in information_headers:
                 linfoh = infoh.lower()
                 if linfoh in headers:
@@ -447,6 +491,9 @@ def parse_options():
                       action="store_true")
     parser.add_option("-i", "--information", dest="information", default=False,
                       help="Display information headers",
+                      action="store_true")
+    parser.add_option("--cors", dest="cors_analysis", default=False,
+                      help="Display CORS headers",
                       action="store_true")
     parser.add_option("-x", "--caching", dest="cache_control", default=False,
                       help="Display caching headers",
