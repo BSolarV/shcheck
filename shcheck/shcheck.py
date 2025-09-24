@@ -341,7 +341,7 @@ def main():
                 unsafe += 1
                 json_results["missing"].append(safeh)
                 log('[!] Missing security header: {}'.format(
-                    colorize(safeh, sec_headers.get(safeh))))
+                    colorize(safeh, HSTS_headers.get(safeh))))
 
         # Before parsing, remove X-Frame-Options if there's CSP with frame-ancestors directive
         if "content-security-policy" in headers.keys() and "frame-ancestors" in headers.get("content-security-policy").lower():
@@ -419,7 +419,7 @@ def main():
                     unsafe += 1
                     json_results["missing"].append(safeh)
                     log('[!] Missing security header: {}'.format(
-                        colorize(safeh, sec_headers.get(safeh))))
+                        colorize(safeh, CORS_headers.get(safeh))))
 
 
         if information:
